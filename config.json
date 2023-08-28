@@ -1,0 +1,40 @@
+{
+    "local": {
+        "connection-id": "7694e456-5f4f-4157-ba61-25a59b294020",
+        "work-dir": "nfta-wdir",
+        "access-token": "eyJ0aWQiOiAxNzJ9LjkwOThjZWUyMDRmMzlhYTIwZTg5ODI5OTg1ZGU3ODZkMGFkZTdiODQ=",
+        "job-config": null,
+        "agent-dir": null,
+        "log-level": "INFO",
+        "log-destination": "stdout",
+        "agent-debug-mode": false,
+        "update-agent":false,
+        "user": null,
+        "project": null
+    },
+    "setonix": {
+        "connection-id": "7694e456-5f4f-4157-ba61-25a59b294020",
+        "work-dir": "/scratch/{project}/{user}/nfta-wdir/",
+        "access-token": "eyJ0aWQiOiAxNzJ9LjkwOThjZWUyMDRmMzlhYTIwZTg5ODI5OTg1ZGU3ODZkMGFkZTdiODQ=",
+        "agent-dir": "/software/projects/{project}/nf-tower/",
+        "job-config": {
+            "job-name": "NF-Tower Agent",
+            "partition": "work",
+            "time": "24:00:00",
+            "ntasks": 1,
+            "ntasks-per-node" : 1,
+            "cpus-per-task" :2,
+            "mem": "12G"
+        },
+        "user": null,
+        "project": null,
+        "log-level": "INFO",
+        "update-agent":false,
+        "log-destination": "stdout",
+        "agent-debug-mode": false,
+        "job-log":null
+    },
+    "gadi": {
+
+    }
+}
