@@ -152,7 +152,7 @@ def validate_configurations(args):
         config["user"] = os.environ.get("USER")
 
     if not config["work-dir"]:
-        config["work-dir"] = "nf-ta-wdir"
+        config["work-dir"] = "nfta-wdir"
 
     if not config["connection-id"]:
         connection_id = input("Please provide a connection ID: ")
