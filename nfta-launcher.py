@@ -9,18 +9,30 @@ import logging
 
 def load_config(config_file_path=None, platform="local"):
     try:
-        if not os.path.isfile(config_file_path):
-            config_file_path = os.path.join(os.getcwd(), "config.json")
+        if config_file_path:
+            if not os.path.isfile(config_file_path):
+                logging.error(f"Configuration file not found {config_file_path}")
+                return {}
+        else:
+            logging.info("Looking for configuration file at the current working directory: {}".format(
+                os.path.join(os.getcwd(), "config.json")))
+            logging.info("Looking for configuration file at: {}".format(
+                os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")))
 
-        if not config_file_path:
-            config_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+            if os.path.isfile(os.path.join(os.getcwd(), "config.json")):
+                config_file_path = os.path.join(os.getcwd(), "config.json")
+            elif os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json"):
+                config_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+            else:
+                logging.warning(f"No configuration file is detected: {config_file_path}")
+                return {}
 
         logging.info(f"Loading configuration file: {config_file_path}")
         with open(config_file_path, "r") as config_file:
             config_data = json.load(config_file)
             if not config_data:
-                logging.error("Configuration file is empty")
-                return None
+                logging.warning("Configuration file is empty")
+                return {}
             return config_data[platform]
     except FileNotFoundError:
         logging.error(f"Configuration file not found {config_file_path}")
@@ -137,13 +149,18 @@ def update_config_from_args(config, args):
         if value is not None:
             config[key] = value
 
+    for key in ["access-token", "connection-id", "work-dir", "job-config", "agent-dir", "log-level",
+                "log-destination", "agent-debug-mode", "update-agent", "user", "project"]:
+        if key not in config:
+            config[key] = None
+
 
 def validate_configurations(args):
     config = load_config(args.config, args.platform)
     update_config_from_args(config, args)
+
     if not config["access-token"] and "TOWER_ACCESS_TOKEN" in os.environ:
         args.access_token = os.environ["TOWER_ACCESS_TOKEN"]
-
 
     if not config["agent-dir"]:
         config["agent-dir"] = os.getcwd()
@@ -231,7 +248,7 @@ def main():
     logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
     args, config = validate_configurations(args)
-    logging.info("Starting nfta-launcher application")
+    logging.info("Starting nfta-launcher cdapplication")
     logging.info(f"Tower agent directory: {config['agent-dir']}")
     logging.info(f"Agent work directory: {config['work-dir']}")
     logging.info(f"Execution mode: {config['platform']}")
