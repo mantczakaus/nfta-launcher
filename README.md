@@ -12,9 +12,9 @@ To run the agent locally with configured parameters in the config.json file, you
 ```bash
 git clone https://github.com/AustralianBioCommons/nfta-launcher
 cd  nfta-launcher
-nft-launcher/nfta-launcher.py --connection-id <conn>
+nfta-launcher.py --connection-id <conn>
 # To run the agent through a slurm job on Setonix try:
-# python nft-launcher/nfta-launcher.py --connection-id <conn> --platform setonix --config config.json --access-token --use
+# python nfta-launcher.py --connection-id <conn> --platform setonix --config config.json --access-token 
 ```
 
 An example of running the agent locally with parameters provided on the command line:
@@ -22,9 +22,9 @@ An example of running the agent locally with parameters provided on the command 
 ```bash
 git clone https://github.com/AustralianBioCommons/nfta-launcher
 cd  nfta-launcher
-nft-launcher/nfta-launcher.py --connection-id <conn>
+nfta-launcher.py --connection-id <conn> --access-token xxxx --work-dir /path/to/dir
 # To run the agent through a slurm job on Setonix try:
-# python nft-launcher/nfta-launcher.py --connection-id <conn> --platform setonix  --access-token xxxx --work-dir /path/to/dir
+# python nfta-launcher.py --connection-id <conn> --platform setonix  --access-token xxxx --work-dir /path/to/dir
 
 ```
 
@@ -33,7 +33,7 @@ nft-launcher/nfta-launcher.py --connection-id <conn>
 
 The tool accepts and prioritises parameters in the following:
 
-+ **--platform**: Platform for execution from {local,gadi,setonix}. The default is local.
++ **--platform**: Platform for execution from {local,background,gadi,setonix}. The default is local.
 + **--connection-id**: The connection id for the credential. Should be taken from the workspace on Tower.
 + **--access-token**: The access token should be taken from Tower for each user.
 + **--work-dir**: the Working directory for the agent.
@@ -46,7 +46,7 @@ The tool accepts and prioritises parameters in the following:
 + **--agent-debug-mode**:  Enable agent debug mode for extra tracking information in the logs. default is `False`.
 + **--agent-dir**: The location where to save `tw-agent` software. if does not exist, it will be created.
 + **--hpc-job-conf**: Job configuration to overwrite default configuration in `config.json`.
-+ **--job-log**:  path and prefix of output and error Log files for the submitted jobs. `.err` and `.out` will be added at the end of the file name
++ **--job-log**:  path and prefix of output and error Log files for the submitted jobs or the agent outputs. `.err` and `.out` will be added at the end of the file name
 + **-h, --help**: show the help message and exit.
 
 ## Details

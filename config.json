@@ -1,8 +1,8 @@
 {
     "local": {
-        "connection-id": "7694e456-5f4f-4157-ba61-25a59b294020",
+        "connection-id": "",
         "work-dir": "nfta-wdir",
-        "access-token": "eyJ0aWQiOiAxNzJ9LjkwOThjZWUyMDRmMzlhYTIwZTg5ODI5OTg1ZGU3ODZkMGFkZTdiODQ=",
+        "access-token": "",
         "job-config": null,
         "agent-dir": null,
         "log-level": "INFO",
@@ -13,10 +13,10 @@
         "project": null
     },
     "setonix": {
-        "connection-id": "7694e456-5f4f-4157-ba61-25a59b294020",
+        "connection-id": "",
         "work-dir": "/scratch/{project}/{user}/nfta-wdir/",
-        "access-token": "eyJ0aWQiOiAxNzJ9LjkwOThjZWUyMDRmMzlhYTIwZTg5ODI5OTg1ZGU3ODZkMGFkZTdiODQ=",
-        "agent-dir": "/software/projects/{project}/{user}/nf-tower/",
+        "access-token": "",
+        "agent-dir": "/software/projects/{project}/nf-tower/",
         "job-config": {
             "job-name": "NF-Tower Agent",
             "partition": "work",

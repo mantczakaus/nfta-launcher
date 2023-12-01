@@ -8,11 +8,29 @@ import logging
 
 
 def load_config(config_file_path=None, platform="local"):
+    empty_config = {
+        "connection-id": None,
+        "work-dir": None,
+        "access-token": None,
+        "job-config": None,
+        "agent-dir": None,
+        "log-level": "INFO",
+        "log-destination": None,
+        "agent-debug-mode": False,
+        "update-agent": False,
+        "user": None,
+        "job-log": None,
+        "project": None
+    }
+
+    if platform.lower() == "background":
+        platform = "local"
+
     try:
         if config_file_path:
             if not os.path.isfile(config_file_path):
                 logging.error(f"Configuration file not found {config_file_path}")
-                return {}
+                return empty_config
         else:
             logging.info("Looking for configuration file at the current working directory: {}".format(
                 os.path.join(os.getcwd(), "config.json")))
@@ -25,14 +43,16 @@ def load_config(config_file_path=None, platform="local"):
                 config_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
             else:
                 logging.warning(f"No configuration file is detected: {config_file_path}")
-                return {}
+                return empty_config
 
         logging.info(f"Loading configuration file: {config_file_path}")
         with open(config_file_path, "r") as config_file:
             config_data = json.load(config_file)
-            if not config_data:
-                logging.warning("Configuration file is empty")
-                return {}
+            if not config_data or platform not in config_data.keys():
+                logging.warning(
+                    "Configuration file is empty or the platform `{}` does not exist in teh configuration file!".format(
+                        platform))
+                return empty_config
             return config_data[platform]
     except FileNotFoundError:
         logging.error(f"Configuration file not found {config_file_path}")
@@ -62,19 +82,23 @@ def download_tw_agent(location):
 
 def init_parser():
     parser = argparse.ArgumentParser(description="Nextflow tower Agent launcher")
-    parser.add_argument("--platform", choices=["local", "gadi", "setonix", "slurm", "pbspro"], default="local",
+    parser.add_argument("--platform", choices=["local", "background", "gadi", "setonix", "slurm", "pbspro"],
+                        default="local",
                         help="Platform for execution")
     parser.add_argument("--connection-id", type=str, help="Connection ID", dest="connection-id")
     parser.add_argument("--work-dir", type=str, help="Working directory", dest="work-dir")
     parser.add_argument("--access-token", type=str, help="Access token", dest="access-token")
     parser.add_argument("--config", type=str, help="configuration file", default=None)
-    parser.add_argument("--update-agent", action="store_true", help="Update tw-agent", default=False, dest="update-agent")
+    parser.add_argument("--update-agent", action="store_true", help="Update tw-agent", default=False,
+                        dest="update-agent")
     parser.add_argument("--user", type=str, help="User")
     parser.add_argument("--project", type=str, help="Project")
     parser.add_argument("--log-level", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
                         dest="log-level", default="INFO", help="Logger level")
-    parser.add_argument("--log-destination", dest="log_destination", choices=["stdout", "file"], default="stdout", help="Log destination")
-    parser.add_argument("--agent-debug-mode", dest="agent-debug-mode", action="store_true", default=False, help="Enable agent debug mode")
+    parser.add_argument("--log-destination", dest="log_destination", choices=["stdout", "file"], default="stdout",
+                        help="Log destination")
+    parser.add_argument("--agent-debug-mode", dest="agent-debug-mode", action="store_true", default=False,
+                        help="Enable agent debug mode")
     parser.add_argument("--agent-dir", dest="agent-dir", type=str, help="Agent directory")
     parser.add_argument("--hpc-job-conf", dest="hpc-job-conf", type=str,
                         help="Job configuration to overwrite default configuration")
@@ -123,22 +147,40 @@ def submit_gadi_job(job_command, hpc_config, log_dir):
     submit_pbspro_job(job_command, hpc_config, log_dir)
 
 
-def run_local_process(job_command, environment_variables={}):
+def run_local_process(job_command, environment_variables={}, output_file=None, background=False):
     logging.info(f"Running: {' '.join(job_command)}")
     try:
+        if output_file:
+            stdout = open("{}.log".format(output_file), 'w')
+            stderr = open("{}.err".format(output_file), 'w')
+        elif background:
+            stdout = subprocess.DEVNULL
+            stderr = subprocess.DEVNULL
+        else:
+            stdout = subprocess.PIPE
+            stderr = subprocess.PIPE
+
         process = subprocess.Popen(job_command,
                                    env=environment_variables,
-                                   stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE,
-                                   universal_newlines=True)
-        for line in process.stdout:
-            print(line, end='')
-        for line in process.stderr:
-            print(line, end='')
-        process.wait()
-        if process.returncode != 0:
-            logging.error(f"Local process exited with non-zero status: {process.returncode}")
-            exit(1)
+                                   stdout=stdout,
+                                   stderr=stderr,
+                                   universal_newlines=True,
+                                   preexec_fn=(os.setpgrp if background else None)
+                                   )
+
+        if background:
+            logging.info(f"Process running in the background: {process.pid} ...")
+            return process.pid
+        else:
+            for line in process.stdout:
+                print(line, end='')
+            for line in process.stderr:
+                print(line, end='')
+            process.wait()
+            if process.returncode != 0:
+                logging.error(f"Local process exited with non-zero status: {process.returncode}")
+                exit(1)
+
     except subprocess.CalledProcessError as e:
         logging.error(f"Error running local process: {e}")
         exit(1)
@@ -150,7 +192,7 @@ def update_config_from_args(config, args):
             config[key] = value
 
     for key in ["access-token", "connection-id", "work-dir", "job-config", "agent-dir", "log-level",
-                "log-destination", "agent-debug-mode", "update-agent", "user", "project"]:
+                "log-destination", "agent-debug-mode", "update-agent", "user", "project", "job-log"]:
         if key not in config:
             config[key] = None
 
@@ -244,7 +286,7 @@ def main():
     args = parser.parse_args()
 
     # Set up logging
-    #configure_logging(config["log-level"], config["log-destination"])
+    # configure_logging(config["log-level"], config["log-destination"])
     logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
     args, config = validate_configurations(args)
@@ -265,13 +307,13 @@ def main():
     if args.platform == "slurm":
         logging.error(f"Only local and setonix platforms are supported!")
         exit(1)
-        #submit_slurm_job(job_command, config["job-config"], args.log_dir)
+        # submit_slurm_job(job_command, config["job-config"], args.log_dir)
     elif args.platform == "pbspro":
-        #submit_pbspro_job(job_command, args.hpc_config, args.log_dir)
+        # submit_pbspro_job(job_command, args.hpc_config, args.log_dir)
         logging.error(f"Only local and setonix platforms are supported!")
         exit(1)
     elif args.platform == "gadi":
-        #submit_gadi_job(job_command, args.hpc_config, args.log_dir)
+        # submit_gadi_job(job_command, args.hpc_config, args.log_dir)
         logging.error(f"Only local and setonix platforms are supported!")
         exit(1)
     elif args.platform.lower() == "setonix":
@@ -280,7 +322,9 @@ def main():
             job_command_str = "LOGGER_LEVELS_IO_SEQERA_TOWER_AGENT=TRACE " + job_command_str
         submit_setonix_job(job_command_str, config["job-config"], config["job-log"])
     else:
-        run_local_process(job_command, env_vars)
+        run_local_process(job_command, env_vars,
+                          output_file=config["job-log"],
+                          background=args.platform.lower() == "background")
 
 
 if __name__ == "__main__":
