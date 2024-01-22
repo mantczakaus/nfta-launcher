@@ -18,7 +18,7 @@
         "access-token": "",
         "agent-dir": "/software/projects/{project}/nf-tower/",
         "job-config": {
-            "job-name": "NF-Tower Agent",
+            "job-name": "NF-Tower-Agent",
             "partition": "work",
             "time": "24:00:00",
             "ntasks": 1,
@@ -35,6 +35,21 @@
         "job-log":null
     },
     "gadi": {
-
+        "connection-id": "",
+        "work-dir": "/scratch/{project}/{user}/nfta-wdir/",
+        "access-token": "",
+        "agent-dir": "/g/data/{project}/nf-tower/",
+        "job-config": {
+            "N": "NF-Tower-Agent",
+            "q": "copyq",
+            "l": "mem=12GB,ncpus=1,walltime=10:00:00,storage=gdata/if89+gdata/{project}+scratch/{project}"
+        },
+        "user": null,
+        "project": null,
+        "log-level": "INFO",
+        "update-agent":false,
+        "log-destination": "stdout",
+        "agent-debug-mode": false,
+        "job-log":null
     }
 }

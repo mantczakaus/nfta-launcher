@@ -3,7 +3,8 @@ import argparse
 import json
 import subprocess
 import os
-import requests
+import urllib.request
+from urllib.error import URLError, HTTPError
 import logging
 
 
@@ -69,15 +70,18 @@ def download_tw_agent(location):
     agent_path = os.path.join(location, "tw-agent")
 
     try:
-        response = requests.get(agent_url, stream=True)
-        response.raise_for_status()
-        with open(agent_path, "wb") as agent_file:
-            for chunk in response.iter_content(chunk_size=8192):
-                agent_file.write(chunk)
+        urllib.request.urlretrieve(agent_url, agent_path)
         os.chmod(agent_path, 0o755)
-        print("tw-agent downloaded and set up successfully.")
-    except requests.exceptions.RequestException as e:
-        print("Error downloading tw-agent:", e)
+        logging.info("tw-agent downloaded and set up successfully.")
+    except HTTPError as e:
+        logging.error(f"HTTP Error: {e.code} - {e.reason}")
+        exit(1)
+    except URLError as e:
+        logging.error(f"URL Error: {e.reason}")
+        exit(1)
+    except Exception as e:
+        logging.error(f"An unexpected error occurred: {e}")
+        exit(1)
 
 
 def init_parser():
@@ -133,8 +137,30 @@ def submit_slurm_job(job_command, hpc_config, log_path=None):
         print("Error submitting Slurm job:", e)
 
 
-def submit_pbspro_job(job_command, hpc_config, log_dir):
-    return
+def submit_pbspro_job(job_command, hpc_config, log_path=None):
+    pbspro_command = ["qsub"]
+
+    for key, value in hpc_config.items():
+        # Check if the value is a string and enclose it in quotes
+        if isinstance(value, str):
+            if key == "N":
+                value = value.replace(" ", "-")
+            pbspro_command.extend(["-" + key, f"'{value}'"])
+        else:
+            pbspro_command.extend(["-" + key, str(value)])
+
+    if log_path:
+        pbspro_command.extend(["-o", f"'{log_path}.out'", "-e", f"'{log_path}.err'"])
+
+    pbspro_command.extend(["--", f"{job_command}"])
+
+    logging.info(f"PBS pro command:{' '.join(pbspro_command)}")
+
+    try:
+        subprocess.run(" ".join(pbspro_command), shell=True)
+
+    except subprocess.CalledProcessError as e:
+        print("Error submitting PBS pro job:", e)
 
 
 def submit_setonix_job(job_command, hpc_config, log_dir):
@@ -226,24 +252,48 @@ def validate_configurations(args):
         exit(1)
 
     if config["platform"] == "gadi":
-        None
+        if not config["project"]:
+            config["project"] = os.environ.get("PROJECT")
+
+        if config["project"]:
+            config["job-config"]["P"] = config["project"]
+
+        if config["job-config"]["l"] and "{project}" in config["job-config"]["l"]:
+            if not config["project"]:
+                logging.error(
+                    "We could not find the project id that is needed to fix some paths. You can use `--project` parameter!")
+                exit(1)
+
+            config["job-config"]["l"] = config["job-config"]["l"].format(project=config["project"])
 
     elif config["platform"] == "setonix":
         if not config["project"]:
             config["project"] = os.environ.get("PAWSEY_PROJECT")
 
-        if config["agent-dir"] and "{project}" in config["agent-dir"]:
-            config["agent-dir"] = config["agent-dir"].format(project=config["project"])
-
-        if config["work-dir"] and "{project}/{user}" in config["work-dir"]:
-            config["work-dir"] = config["work-dir"].format(project=config["project"], user=config["user"])
-
         if config["project"]:
             config["job-config"]["account"] = config["project"]
 
-    if not config["project"] or not config["user"]:
-        logging.warning("We could not find the user name or the project code. "
-                        "This can cause unexpected behaviure if you using them in any configuration!")
+    if config["agent-dir"] and "{project}" in config["agent-dir"]:
+        if not config["project"]:
+            logging.error(
+                "We could not find the project id that is needed to fix some paths. You can use `--project` parameter!")
+            exit(1)
+
+        config["agent-dir"] = config["agent-dir"].format(project=config["project"])
+
+    if config["work-dir"] and "{project}/{user}" in config["work-dir"]:
+        if not config["user"]:
+            logging.error(
+                "We could not find the user name that is needed to fix some paths. You can use `--user` parameter!")
+            exit(1)
+
+        if not config["project"]:
+            logging.error(
+                "We could not find the project id that is needed to fix some paths. You can use `--project` parameter!")
+            exit(1)
+
+        config["work-dir"] = config["work-dir"].format(project=config["project"], user=config["user"])
+
     return args, config
 
 
@@ -313,9 +363,8 @@ def main():
         logging.error(f"Only local and setonix platforms are supported!")
         exit(1)
     elif args.platform == "gadi":
-        # submit_gadi_job(job_command, args.hpc_config, args.log_dir)
-        logging.error(f"Only local and setonix platforms are supported!")
-        exit(1)
+        job_command_str = " ".join(job_command)
+        submit_gadi_job(job_command_str, config["job-config"], config["job-log"])
     elif args.platform.lower() == "setonix":
         job_command_str = " ".join(job_command)
         if config["agent-debug-mode"]:
