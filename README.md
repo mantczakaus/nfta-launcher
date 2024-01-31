@@ -33,7 +33,7 @@ nfta-launcher.py --connection-id <conn> --access-token xxxx --work-dir /path/to/
 
 The tool accepts and prioritises parameters in the following:
 
-+ **--platform**: Platform for execution from {local,background,gadi,setonix}. The default is local.
++ **--platform**: Platform for execution from {local,background,gadi,setonix}. The default is `local`.
 + **--connection-id**: The connection id for the credential. Should be taken from the workspace on Tower.
 + **--access-token**: The access token should be taken from Tower for each user.
 + **--work-dir**: the Working directory for the agent.
@@ -55,13 +55,26 @@ The tool starts by validating all needed parameters by considering the prioritis
 
 After all needed parameters are validated, the tool checks if `tw-agent` exists under the `agent-dir`. If not, or if `update-agent` is enabled, the tool will download the the agent to the specified directory under the `agent-dir`.
 
-If the platform is `local`, the tool will run the agent locally and keep printing the agent log.
+If the platform is 
 
-Otherwise, the tool will build an HPC job to run the agent using the job configs in the configuration. If `hpc-job-conf` is provided, the tool will overwrite the configuration based on the value of this parameter. (Not implemented yet).
+1- `local`, the tool will run the agent locally and keep printing the agent log.
+
+2- `background`: run teh agent in the process in teh background of the session and deattach returning the process id. 
+
+3- `setonix`: run the agent in a job using setonix configuration in the config file. 
+
+4- `gadi`: run the agent in a job using gadi configuration in the config file. 
+
+For 3 and 4, if `hpc-job-conf` is provided, the tool will overwrite the configuration of the submited jobs based on the value of this parameter. (Not implemented yet).
 
 If the working directory of the agent is not provided, the tool will use `nfta-wdir` in the current working directory.
 
 If the working directory of the agent does not exist, the tool will create a new directory.
+
+Some pre configured paths uses user name and the project id on the HPC (mainly for setonix and gadi). If not provided, teh tool will try to find them in the environment variables. If project id is found or provided, it will be use for accounting on the HPC.
+
+The tool will look for the Access token in the environment variables if not provided.
+
 
 ## Parameter prioritisation
 
