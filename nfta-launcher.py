@@ -228,17 +228,28 @@ def validate_configurations(args):
     update_config_from_args(config, args)
 
     if not config["access-token"] and "TOWER_ACCESS_TOKEN" in os.environ:
-        args.access_token = os.environ["TOWER_ACCESS_TOKEN"]
+        logging.info("Loading Tower Access token from the environment variable 'TOWER_ACCESS_TOKEN'")
+        config["access-token"] = os.environ["TOWER_ACCESS_TOKEN"]
 
     if not config["agent-dir"]:
         config["agent-dir"] = os.getcwd()
+        logging.info("No agent directory is not provided, using the current working directory: {}".format(config["agent-dir"]))
+    else:
+        logging.info("Agent directory: {}".format(config["agent-dir"]))
+        
 
     if not config["user"]:
         config["user"] = os.environ.get("USER")
+        logging.info("user name is not provided, using the environment variable 'USER'  value '{}'".format(config["user"]))
+    else:
+        logging.info("User name: {}".format(config["user"]))
 
     if not config["work-dir"]:
         config["work-dir"] = "nfta-wdir"
-
+        logging.info("No agent working directory is not provided, using 'nfta-wdir'")
+    else:
+        logging.info("Agent working directory: {}".format(config["work-dir"]))
+        
     if not config["connection-id"]:
         connection_id = input("Please provide a connection ID: ")
         config["connection-id"] = connection_id
@@ -254,21 +265,27 @@ def validate_configurations(args):
     if config["platform"] == "gadi":
         if not config["project"]:
             config["project"] = os.environ.get("PROJECT")
+            logging.info("Project ID is not provided, using the environment variable 'PROJECT' value '{}'".format(config["project"]))
+        else:
+            logging.info("Project ID: {}".format(config["project"]))
 
         if config["project"]:
             config["job-config"]["P"] = config["project"]
-
+        
         if config["job-config"]["l"] and "{project}" in config["job-config"]["l"]:
             if not config["project"]:
                 logging.error(
-                    "We could not find the project id that is needed to fix some paths. You can use `--project` parameter!")
+                "We could not find the project id that is needed to fix some paths. You can use `--project` parameter!")
                 exit(1)
-
-            config["job-config"]["l"] = config["job-config"]["l"].format(project=config["project"])
+            
+            config[ "job-config"]["l"] = config[ "job-config"]["l"].format(project=config["project"])
 
     elif config["platform"] == "setonix":
         if not config["project"]:
             config["project"] = os.environ.get("PAWSEY_PROJECT")
+            logging.info("Project ID is not provided, using the environment variable 'PAWSEY_PROJECT' value '{}'".format(config["project"]))
+        else:
+            logging.info("Project ID: {}".format(config["project"]))
 
         if config["project"]:
             config["job-config"]["account"] = config["project"]
@@ -340,7 +357,7 @@ def main():
     logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
     args, config = validate_configurations(args)
-    logging.info("Starting nfta-launcher cdapplication")
+    logging.info("Starting nfta-launcher application")
     logging.info(f"Tower agent directory: {config['agent-dir']}")
     logging.info(f"Agent work directory: {config['work-dir']}")
     logging.info(f"Execution mode: {config['platform']}")
