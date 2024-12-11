@@ -322,7 +322,7 @@ def build_agent_command(config):
 
     job_command.append(os.path.join(config["agent-dir"], "tw-agent"))
     job_command.append(config["connection-id"])
-    job_command.extend(["-u", "https://tower.services.biocommons.org.au/api"])
+    job_command.extend(["-u", "https://seqera.services.biocommons.org.au/api"])
     job_command.extend(["--work-dir", config["work-dir"]])
     job_command.extend(["--access-token", config["access-token"]])
 
